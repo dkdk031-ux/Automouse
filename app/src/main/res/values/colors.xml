@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#3D6DF6</color>
+    <color name="brand_dim">#1F4BD8</color>
+    <color name="danger">#E5484D</color>
+    <color name="ok">#2FA36B</color>
+    <color name="panel_bg">#E6202226</color>
+    <color name="picker_scrim">#33000000</color>
+</resources>
