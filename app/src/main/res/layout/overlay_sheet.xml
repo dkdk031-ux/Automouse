@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_panel"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/sheetTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:text="동작 1 · 탭" />
+
+    <TextView
+        android:id="@+id/sheetSub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="#AAFFFFFF"
+        android:textSize="12sp"
+        android:text="(0, 0)" />
+
+    <!-- 누름 시간 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp"
+        android:text="누르고 있는 시간 (ms)" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnDurMinus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="－" />
+
+        <TextView
+            android:id="@+id/txtDuration"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:text="60" />
+
+        <TextView
+            android:id="@+id/btnDurPlus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="＋" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/chipsDuration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal" />
+
+    <!-- 대기 시간 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp"
+        android:text="다음 동작까지 대기 (ms)" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnDelayMinus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="－" />
+
+        <TextView
+            android:id="@+id/txtDelay"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:text="500" />
+
+        <TextView
+            android:id="@+id/btnDelayPlus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="＋" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/chipsDelay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal" />
+
+    <!-- 반복 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp"
+        android:text="이 동작 반복 횟수" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnRepMinus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="－" />
+
+        <TextView
+            android:id="@+id/txtRepeat"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:text="1" />
+
+        <TextView
+            android:id="@+id/btnRepPlus"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="＋" />
+    </LinearLayout>
+
+    <!-- 하단 버튼 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnSheetDelete"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_danger"
+            android:gravity="center"
+            android:textColor="#FF8A8D"
+            android:textSize="14sp"
+            android:text="이 동작 삭제" />
+
+        <Space
+            android:layout_width="10dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:id="@+id/btnSheetClose"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_step"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:text="닫기" />
+    </LinearLayout>
+
+</LinearLayout>

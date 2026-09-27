@@ -1,6 +1,8 @@
 package com.koosy.autotouch
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.Point
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -8,7 +10,9 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.WindowManager
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -33,6 +37,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var edJitterMs: EditText
     private lateinit var edStartDelay: EditText
 
+    private lateinit var chkAutoScale: CheckBox
+    private lateinit var edCalOffX: EditText
+    private lateinit var edCalOffY: EditText
+    private lateinit var edCalScaleX: EditText
+    private lateinit var edCalScaleY: EditText
+    private lateinit var txtScreenInfo: TextView
+    private lateinit var txtCalInfo: TextView
+
+    /** 설정을 화면에 채워 넣는 동안 TextWatcher 가 되받아치지 않도록 */
+    private var filling = false
+
     private val storeListener: () -> Unit = { runOnUiThread { refresh() } }
     private val runListener: (Boolean) -> Unit = { runOnUiThread { updateStatus() } }
 
@@ -51,6 +66,14 @@ class MainActivity : AppCompatActivity() {
         edJitterPx = findViewById(R.id.edJitterPx)
         edJitterMs = findViewById(R.id.edJitterMs)
         edStartDelay = findViewById(R.id.edStartDelay)
+
+        chkAutoScale = findViewById(R.id.chkAutoScale)
+        edCalOffX = findViewById(R.id.edCalOffX)
+        edCalOffY = findViewById(R.id.edCalOffY)
+        edCalScaleX = findViewById(R.id.edCalScaleX)
+        edCalScaleY = findViewById(R.id.edCalScaleY)
+        txtScreenInfo = findViewById(R.id.txtScreenInfo)
+        txtCalInfo = findViewById(R.id.txtCalInfo)
 
         adapter = ActionAdapter(
             ScriptStore.actions,
@@ -75,11 +98,40 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("삭제") { _, _ ->
                     ScriptStore.actions.clear()
                     persist()
-                    adapter.notifyDataSetChanged()
                     refresh()
                 }
                 .setNegativeButton("취소", null)
                 .show()
+        }
+
+        findViewById<Button>(R.id.btnCalibrate).setOnClickListener {
+            val svc = AutoTouchService.instance
+            if (svc == null) {
+                promptEnableService()
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle("자동 좌표 보정")
+                    .setMessage(
+                        "앱이 화면 두 곳을 스스로 눌러 보고, 실제로 눌린 위치와의 차이를 측정합니다.\n\n" +
+                            "약 5초 정도 걸립니다. 그동안 화면을 만지지 마세요."
+                    )
+                    .setPositiveButton("시작") { _, _ -> svc.startCalibration() }
+                    .setNegativeButton("취소", null)
+                    .show()
+            }
+        }
+
+        findViewById<Button>(R.id.btnCalReset).setOnClickListener {
+            ScriptStore.resetCalibration()
+            ScriptStore.save(this)
+            fillSettings()
+            Toast.makeText(this, "보정값을 초기화했습니다", Toast.LENGTH_SHORT).show()
+        }
+
+        chkAutoScale.setOnCheckedChangeListener { _, checked ->
+            if (filling) return@setOnCheckedChangeListener
+            ScriptStore.autoScale = checked
+            ScriptStore.save(this)
         }
 
         findViewById<Button>(R.id.btnStart).setOnClickListener {
@@ -102,10 +154,14 @@ class MainActivity : AppCompatActivity() {
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-            override fun afterTextChanged(s: Editable?) = readSettings()
+            override fun afterTextChanged(s: Editable?) {
+                if (!filling) readSettings()
+            }
         }
-        listOf(edLoopCount, edLoopDelay, edJitterPx, edJitterMs, edStartDelay)
-            .forEach { it.addTextChangedListener(watcher) }
+        listOf(
+            edLoopCount, edLoopDelay, edJitterPx, edJitterMs, edStartDelay,
+            edCalOffX, edCalOffY, edCalScaleX, edCalScaleY
+        ).forEach { it.addTextChangedListener(watcher) }
 
         ScriptStore.addListener(storeListener)
     }
@@ -113,7 +169,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ScriptStore.load(this)
-        adapter.notifyDataSetChanged()
         fillSettings()
         AutoTouchService.instance?.addStateListener(runListener)
         refresh()
@@ -132,13 +187,39 @@ class MainActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------------ 상태 표시
 
+    private fun screenSize(): Point {
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val b = wm.currentWindowMetrics.bounds
+            Point(b.width(), b.height())
+        } else {
+            val p = Point()
+            @Suppress("DEPRECATION")
+            wm.defaultDisplay.getRealSize(p)
+            p
+        }
+    }
+
     private fun refresh() {
-        // 레이아웃 계산 중 호출되는 것을 피하려고 한 프레임 뒤에 갱신한다.
+        // 보정 등으로 값이 바뀌었을 수 있으므로, 입력 중이 아닐 때만 화면을 다시 채운다
+        if (currentFocus == null && !filling) fillSettings()
         list.post { adapter.notifyDataSetChanged() }
         txtEmpty.visibility = if (ScriptStore.actions.isEmpty()) TextView.VISIBLE else TextView.GONE
         findViewById<TextView>(R.id.txtListTitle).text = "동작 목록 (${ScriptStore.actions.size})"
         updateStatus()
+        updateCalInfo()
         AutoTouchService.instance?.overlayController()?.refreshMarkers()
+    }
+
+    private fun updateCalInfo() {
+        val s = screenSize()
+        val sizes = ScriptStore.actions
+            .filter { it.recW > 0 && it.recH > 0 }
+            .map { "${it.recW}×${it.recH}" }
+            .distinct()
+        val recorded = if (sizes.isEmpty()) "" else "  ·  기록된 화면: ${sizes.joinToString(", ")}"
+        txtScreenInfo.text = "현재 화면 ${s.x} × ${s.y}$recorded"
+        txtCalInfo.text = "보정값  ${ScriptStore.calibrationSummary()}"
     }
 
     private fun updateStatus() {
@@ -187,12 +268,23 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------------ 설정 값
 
     private fun fillSettings() {
+        filling = true
         edLoopCount.setText(ScriptStore.loopCount.toString())
         edLoopDelay.setText(ScriptStore.loopDelay.toString())
         edJitterPx.setText(ScriptStore.jitterPx.toString())
         edJitterMs.setText(ScriptStore.jitterMs.toString())
         edStartDelay.setText(ScriptStore.startDelay.toString())
+        chkAutoScale.isChecked = ScriptStore.autoScale
+        edCalOffX.setText(trimNum(ScriptStore.calOffsetX))
+        edCalOffY.setText(trimNum(ScriptStore.calOffsetY))
+        edCalScaleX.setText(trimNum(ScriptStore.calScaleX))
+        edCalScaleY.setText(trimNum(ScriptStore.calScaleY))
+        filling = false
+        updateCalInfo()
     }
+
+    private fun trimNum(v: Float): String =
+        String.format("%.4f", v).trimEnd('0').trimEnd('.').ifEmpty { "0" }
 
     private fun readSettings() {
         ScriptStore.loopCount = edLoopCount.int(0)
@@ -200,6 +292,11 @@ class MainActivity : AppCompatActivity() {
         ScriptStore.jitterPx = edJitterPx.int(0)
         ScriptStore.jitterMs = edJitterMs.long(0L)
         ScriptStore.startDelay = edStartDelay.long(1000L)
+        ScriptStore.autoScale = chkAutoScale.isChecked
+        ScriptStore.calOffsetX = edCalOffX.float(0f)
+        ScriptStore.calOffsetY = edCalOffY.float(0f)
+        ScriptStore.calScaleX = edCalScaleX.float(1f).let { if (it == 0f) 1f else it }
+        ScriptStore.calScaleY = edCalScaleY.float(1f).let { if (it == 0f) 1f else it }
     }
 
     private fun persist() {
@@ -212,7 +309,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun showEditDialog(position: Int) {
         val isNew = position < 0
-        val src = if (isNew) ActionItem() else ScriptStore.actions[position].copyOf()
+        val size = screenSize()
+        val src = if (isNew) ActionItem(recW = size.x, recH = size.y)
+        else ScriptStore.actions[position].copyOf()
 
         val v = LayoutInflater.from(this).inflate(R.layout.dialog_edit_action, null)
         val rbTap = v.findViewById<RadioButton>(R.id.rbTap)
@@ -265,7 +364,9 @@ class MainActivity : AppCompatActivity() {
                     delayAfter = edDelay.long(500L).coerceAtLeast(0L),
                     repeat = edRepeat.int(1).coerceAtLeast(1),
                     enabled = src.enabled,
-                    label = edLabel.text.toString().trim()
+                    label = edLabel.text.toString().trim(),
+                    recW = if (src.recW > 0) src.recW else size.x,
+                    recH = if (src.recH > 0) src.recH else size.y
                 )
                 if (isNew) ScriptStore.actions.add(item) else ScriptStore.actions[position] = item
                 persist()
@@ -278,3 +379,4 @@ class MainActivity : AppCompatActivity() {
 
 private fun EditText.int(def: Int): Int = text.toString().trim().toIntOrNull() ?: def
 private fun EditText.long(def: Long): Long = text.toString().trim().toLongOrNull() ?: def
+private fun EditText.float(def: Float): Float = text.toString().trim().toFloatOrNull() ?: def

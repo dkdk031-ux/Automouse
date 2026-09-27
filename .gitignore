@@ -9,3 +9,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 업로드 도우미 스크립트 (저장소에 올리지 않음)
+UPLOAD.bat

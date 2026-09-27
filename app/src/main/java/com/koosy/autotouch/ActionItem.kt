@@ -13,6 +13,8 @@ enum class ActionType { TAP, SWIPE }
  *
  * [repeat]     이 동작 자체를 몇 번 반복할지
  * [delayAfter] 이 동작이 끝난 뒤 다음 동작까지 쉬는 시간(ms)
+ * [recW]/[recH] 좌표를 기록할 당시의 화면 크기(px). 폴더블처럼 화면이 바뀌는 기기에서
+ *               실행 시점 화면 크기에 맞춰 좌표를 비례 보정하는 데 쓴다. 0 이면 미지정.
  */
 data class ActionItem(
     var type: ActionType = ActionType.TAP,
@@ -24,7 +26,9 @@ data class ActionItem(
     var delayAfter: Long = 500L,
     var repeat: Int = 1,
     var enabled: Boolean = true,
-    var label: String = ""
+    var label: String = "",
+    var recW: Int = 0,
+    var recH: Int = 0
 ) {
 
     fun title(): String = when (type) {
@@ -40,6 +44,11 @@ data class ActionItem(
         return if (label.isBlank()) base else "$label · $base"
     }
 
+    fun shortName(): String = when (type) {
+        ActionType.TAP -> if (duration >= 600) "길게 누르기" else "탭"
+        ActionType.SWIPE -> "드래그"
+    }
+
     fun copyOf(): ActionItem = copy()
 
     fun toJson(): JSONObject = JSONObject().apply {
@@ -53,6 +62,8 @@ data class ActionItem(
         put("repeat", repeat)
         put("enabled", enabled)
         put("label", label)
+        put("recW", recW)
+        put("recH", recH)
     }
 
     companion object {
@@ -67,22 +78,31 @@ data class ActionItem(
             delayAfter = o.optLong("delayAfter", 500L),
             repeat = o.optInt("repeat", 1),
             enabled = o.optBoolean("enabled", true),
-            label = o.optString("label", "")
+            label = o.optString("label", ""),
+            recW = o.optInt("recW", 0),
+            recH = o.optInt("recH", 0)
         )
 
-        fun tap(x: Float, y: Float) = ActionItem(
+        fun tap(x: Float, y: Float, screenW: Int, screenH: Int) = ActionItem(
             type = ActionType.TAP,
             x1 = x.roundToInt(),
-            y1 = y.roundToInt()
+            y1 = y.roundToInt(),
+            recW = screenW,
+            recH = screenH
         )
 
-        fun swipe(x1: Float, y1: Float, x2: Float, y2: Float, durationMs: Long) = ActionItem(
+        fun swipe(
+            x1: Float, y1: Float, x2: Float, y2: Float,
+            durationMs: Long, screenW: Int, screenH: Int
+        ) = ActionItem(
             type = ActionType.SWIPE,
             x1 = x1.roundToInt(),
             y1 = y1.roundToInt(),
             x2 = x2.roundToInt(),
             y2 = y2.roundToInt(),
-            duration = durationMs.coerceIn(80L, 10_000L)
+            duration = durationMs.coerceIn(80L, 10_000L),
+            recW = screenW,
+            recH = screenH
         )
     }
 }
